@@ -3,7 +3,6 @@ import streamlit as st
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-# --- إعدادات الصفحة والتصميم ---
 st.set_page_config(
     page_title="المساعد الذكي الشامل",
     page_icon="🤖",
@@ -28,23 +27,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- إشارة الصانع في أعلى الصفحة ---
 st.markdown('<div class="designer-tag">✨ صانعي وبكل فخر محمد علاء بن زايد ✨</div>', unsafe_allow_html=True)
 
 st.title("🤖 المساعد الذكي الشامل")
 st.caption("ذكاء اصطناعي مخصص للإجابة عن أسئلتك والبحث في الإنترنت عند الحاجة")
 
-# --- القائمة الجانبية ---
 with st.sidebar:
     st.header("⚙️ الخيارات")
     if st.button("مسح السجل / محادثة جديدة"):
         st.session_state.messages = []
         st.rerun()
 
-# جلب المفتاح تلقائياً من أسرار Streamlit
-api_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+raw_key = st.secrets.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY", "")
+api_key = str(raw_key).strip().encode("ascii", "ignore").decode("ascii")
 
-# --- إدارة سجل المحادثة ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -52,21 +48,23 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# --- استقبال سؤال المستخدم ---
 user_input = st.chat_input("اكتب سؤالك هنا...")
 
 if user_input:
     if not api_key:
-        st.error("لم يتم العثور على مفتاح API في إعدادات Secrets.")
+        st.error("لم يتم العثور على مفتاح API صحيح في إعدادات Secrets.")
     else:
         st.session_state.messages.append({"role": "user", "content": user_input})
         with st.chat_message("user"):
             st.markdown(user_input)
 
-        os.environ["GOOGLE_API_KEY"] = api_key
-        
         try:
-            llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.3)
+            # استخدام اسم النموذج الحديث المدعوم في Google API
+            llm = ChatGoogleGenerativeAI(
+                model="gemini-1.5-flash-latest", 
+                google_api_key=api_key,
+                temperature=0.3
+            )
             
             with st.chat_message("assistant"):
                 with st.spinner("جاري التفكير وتوليد الإجابة..."):
